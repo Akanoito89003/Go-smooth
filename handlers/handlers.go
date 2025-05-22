@@ -133,11 +133,26 @@ func Logout(c *gin.Context) {
 // GetUserProfile returns the current user's profile
 func GetUserProfile(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
+	objectID, err := primitive.ObjectIDFromHex(userID.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var user models.User
+	err = usersCollection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&user)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":   userID,
-		"role": role,
+		"user": gin.H{
+			"id":    user.ID.Hex(),
+			"email": user.Email,
+			"name":  user.Name,
+			"role":  user.Role,
+		},
 	})
 }
 
